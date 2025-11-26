@@ -1,77 +1,98 @@
-# gcs-opt
+# GCS Optimizer CLI (gcs-opt)
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+Google Cloud Storage (GCS) のバケットを分析し、コスト削減の機会を特定するためのCLIツールです。
+指定された期間（デフォルト180日）以上アクセスされていない（作成から経過している）オブジェクトを検出し、より安価なストレージクラス（Nearline, Coldline, Archive）に移行した場合や、削除した場合のコスト削減額を試算します。
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+## 特徴
 
-## Running the application in dev mode
+- **コスト分析**: バケットごとの現在のコストと、最適化後のコストを比較・試算します。
+- **柔軟な条件設定**: 未使用とみなす期間（日数）や、移行先のストレージクラスを指定可能です。
+- **圧縮効果の試算**: オブジェクトを圧縮した場合のコスト削減効果も簡易的に試算できます。
+- **多様な出力**: コンソールへのテーブル出力に加え、JSON形式でのレポート出力もサポートしています。
 
-You can run your application in dev mode that enables live coding using:
+## 必要要件
 
-```shell script
-./gradlew quarkusDev
+- Java 21 以上
+- Google Cloud SDK (`gcloud` コマンド) - 認証に使用
+
+## セットアップ
+
+### 1. ビルド
+
+```bash
+./gradlew quarkusBuild
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
+ビルドが成功すると、`build/quarkus-app/quarkus-run.jar` が生成されます。
 
-## Packaging and running the application
+### 2. 認証
 
-The application can be packaged using:
+実行にはGoogle Cloudの認証情報が必要です。以下のコマンドで認証を行ってください。
 
-```shell script
-./gradlew build
+```bash
+gcloud auth application-default login
 ```
 
-It produces the `quarkus-run.jar` file in the `build/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `build/quarkus-app/lib/` directory.
+## 使い方
 
-The application is now runnable using `java -jar build/quarkus-app/quarkus-run.jar`.
+基本的なコマンド形式は以下の通りです。
 
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
-./gradlew build -Dquarkus.package.jar.type=uber-jar
+```bash
+java -jar build/quarkus-app/quarkus-run.jar scan -p <PROJECT_ID> [OPTIONS]
 ```
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar build/*-runner.jar`.
+### オプション一覧
 
-## Creating a native executable
+| オプション | 短縮形 | 説明 | デフォルト値 | 必須 |
+|------------|--------|------|--------------|------|
+| `--project` | `-p` | Google Cloud プロジェクトID | - | **Yes** |
+| `--bucket` | `-b` | 特定のバケットのみをスキャンする場合に指定 | 全バケット | No |
+| `--threshold-days` | `-d` | 未使用とみなす経過日数（作成日時ベース） | `180` | No |
+| `--target-class` | `-t` | 移行先のストレージクラス (`NEARLINE`, `COLDLINE`, `ARCHIVE`, `DELETE`) | `COLDLINE` | No |
+| `--estimate-compression` | `-c` | 圧縮による削減効果を試算するか（圧縮率0.5で計算） | `false` | No |
+| `--output` | `-o` | 出力形式 (`text` または `json`) | `text` | No |
 
-You can create a native executable using:
+### 実行例
 
-```shell script
+#### 基本的なスキャン（全バケット）
+プロジェクト内の全バケットをスキャンし、180日以上経過したオブジェクトをCOLDLINEに移行した場合の試算を行います。
+
+```bash
+java -jar build/quarkus-app/quarkus-run.jar scan -p my-project-id
+```
+
+#### 特定バケットの削除シミュレーション
+特定のバケット (`my-bucket`) 内の、365日以上経過したオブジェクトを**削除** (`DELETE`) した場合の削減額を試算します。
+
+```bash
+java -jar build/quarkus-app/quarkus-run.jar scan -p my-project-id -b my-bucket -d 365 -t DELETE
+```
+
+#### アーカイブへの移行とJSON出力
+90日以上経過したオブジェクトを `ARCHIVE` クラスに移行した場合の試算を行い、結果をJSON形式で出力します。
+
+```bash
+java -jar build/quarkus-app/quarkus-run.jar scan -p my-project-id -d 90 -t ARCHIVE -o json
+```
+
+## 注意事項
+
+- **コスト計算について**: 本ツールはストレージ保存容量（Storage Class Pricing）のみを基にコストを試算します。API操作回数（Class A/B Operations）、ネットワーク転送量（Egress）、早期削除手数料（Early Deletion Fee）などは考慮されていません。実際の請求額とは異なる場合があります。
+- **判定基準**: オブジェクトの「古さ」は `Creation Time`（作成日時）に基づいています。これはGCSのライフサイクルルールの `Age` 条件と一致させるためです。
+- **単価**: 現在のバージョンでは、主に `asia-northeast1` (Tokyo) リージョンの単価を基準に計算しています。Multi-Regionの場合は `asia` の単価が適用されます。
+
+## 開発
+
+### 開発モードでの実行
+
+```bash
+./gradlew quarkusDev -- -p <PROJECT_ID>
+```
+
+### ネイティブビルド
+
+GraalVMがインストールされている場合、ネイティブバイナリをビルドできます。
+
+```bash
 ./gradlew build -Dquarkus.native.enabled=true
-```
-
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
-
-```shell script
-./gradlew build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true
-```
-
-You can then execute your native executable with: `./build/gcs-opt-1.0.0-SNAPSHOT-runner`
-
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/gradle-tooling>.
-
-## Related Guides
-
-- ArC ([guide](https://quarkus.io/guides/cdi-reference)): Build time CDI dependency injection
-- Picocli ([guide](https://quarkus.io/guides/picocli)): Develop command line applications with Picocli
-- Kotlin ([guide](https://quarkus.io/guides/kotlin)): Write your services in Kotlin
-- Google Cloud Storage ([guide](https://quarkiverse.github.io/quarkiverse-docs/quarkus-google-cloud-services/main/storage.html)): Use Google Cloud Storage object storage service
-
-## Provided Code
-
-### Picocli Example
-
-Hello and goodbye are civilization fundamentals. Let's not forget it with this example picocli application by changing the <code>command</code> and <code>parameters</code>.
-
-[Related guide section...](https://quarkus.io/guides/picocli#command-line-application-with-multiple-commands)
-
-Also for picocli applications the dev mode is supported. When running dev mode, the picocli application is executed and on press of the Enter key, is restarted.
-
-As picocli applications will often require arguments to be passed on the commandline, this is also possible in dev mode via:
-
-```shell script
-./gradlew quarkusDev --quarkus-args='Quarky'
 ```
