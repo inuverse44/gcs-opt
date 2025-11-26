@@ -5,6 +5,8 @@ import com.example.gcsopt.domain.model.BucketInfo
 import com.example.gcsopt.infra.gcs.GcsRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import java.time.Instant
@@ -28,12 +30,15 @@ class AnalysisService {
     /**
      * バケットを分析
      */
-    fun analyzeBucket(
+    /**
+     * バケットを分析
+     */
+    suspend fun analyzeBucket(
         bucket: BucketInfo,
         thresholdDays: Long,
         targetClass: String = "COLDLINE",
         compressionRatio: Double? = null
-    ): BucketAnalysis = runBlocking {
+    ): BucketAnalysis {
         println("  Analyzing bucket: ${bucket.name}...")
         
         val threshold = Instant.now().minus(thresholdDays, ChronoUnit.DAYS)
@@ -80,7 +85,7 @@ class AnalysisService {
         
         println("    Analysis complete")
         
-        BucketAnalysis(
+        return BucketAnalysis(
             bucket = bucket,
             totalObjects = totalObjects,
             totalSize = totalSize,
@@ -101,16 +106,19 @@ class AnalysisService {
         targetClass: String = "COLDLINE",
         compressionRatio: Double? = null,
         bucketFilter: String? = null
-    ): List<BucketAnalysis> {
+    ): List<BucketAnalysis> = runBlocking {
         println("Fetching bucket list...")
         val buckets = repository.listBuckets(projectId)
             .filter { bucketFilter == null || it.name == bucketFilter }
         
         println("Found ${buckets.size} bucket(s) to analyze\n")
         
-        return buckets.mapIndexed { index, bucket ->
-            println("[${index + 1}/${buckets.size}]")
-            analyzeBucket(bucket, thresholdDays, targetClass, compressionRatio)
-        }
+        // 並列実行
+        buckets.mapIndexed { index, bucket ->
+            async {
+                println("[${index + 1}/${buckets.size}] Starting analysis for ${bucket.name}")
+                analyzeBucket(bucket, thresholdDays, targetClass, compressionRatio)
+            }
+        }.awaitAll()
     }
 }

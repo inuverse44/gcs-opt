@@ -45,7 +45,15 @@ class GcsRepositoryImpl : GcsRepository {
     override fun listObjects(bucketName: String): Flow<ObjectInfo> = flow {
         val blobs = storage.list(
             bucketName,
-            Storage.BlobListOption.pageSize(1000)
+            Storage.BlobListOption.pageSize(5000),
+            Storage.BlobListOption.fields(
+                Storage.BlobField.NAME,
+                Storage.BlobField.BUCKET,
+                Storage.BlobField.SIZE,
+                Storage.BlobField.STORAGE_CLASS,
+                Storage.BlobField.TIME_CREATED,
+                Storage.BlobField.UPDATED
+            )
         )
         
         for (blob in blobs.iterateAll()) {
