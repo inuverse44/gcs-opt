@@ -39,3 +39,10 @@ nb-configuration.xml
 /.quarkus/cli/plugins/
 # TLS Certificates
 .certs/
+
+
+# data
+data/
+
+# 
+AI_CONTEXT.md

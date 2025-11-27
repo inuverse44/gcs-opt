@@ -9,6 +9,7 @@ Google Cloud Storage (GCS) のバケットを分析し、コスト削減の機�
 - **柔軟な条件設定**: 未使用とみなす期間（日数）や、移行先のストレージクラスを指定可能です。
 - **圧縮効果の試算**: オブジェクトを圧縮した場合のコスト削減効果も簡易的に試算できます。
 - **多様な出力**: コンソールへのテーブル出力に加え、JSON形式でのレポート出力もサポートしています。
+- **ローカルキャッシュ**: Hibernate ORM + H2 に結果を永続化し、再スキャン時にキャッシュを流用できます。
 
 ## 必要要件
 
@@ -51,6 +52,14 @@ java -jar build/quarkus-app/quarkus-run.jar scan -p <PROJECT_ID> [OPTIONS]
 | `--target-class` | `-t` | 移行先のストレージクラス (`NEARLINE`, `COLDLINE`, `ARCHIVE`, `DELETE`) | `COLDLINE` | No |
 | `--estimate-compression` | `-c` | 圧縮による削減効果を試算するか（圧縮率0.5で計算） | `false` | No |
 | `--output` | `-o` | 出力形式 (`text` または `json`) | `text` | No |
+| `--use-cache` | - | キャッシュ済みの分析結果があればGCSスキャンを省略 | `false` | No |
+| `--cache-ttl-minutes` | - | `--use-cache` 時に有効とみなすキャッシュの有効期間（分） | `1440` | No |
+
+### キャッシュの挙動
+
+- 初回または `--use-cache` を付けない実行時は常にGCSをスキャンし、結果をローカルH2 DB (`./data/gcs-opt-db`) に保存します。
+- `--use-cache` を指定すると、同じ `projectId` と `thresholdDays`（＋必要なら `--bucket`）の最新結果をキャッシュから取得します。
+- `--cache-ttl-minutes` で指定した期間より古い結果しかない場合は、自動的にライブスキャンへフォールバックします。
 
 ### 実行例
 

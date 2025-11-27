@@ -14,7 +14,6 @@ import picocli.CommandLine
 )
 class GcsOptCommand : Runnable {
     override fun run() {
-        // デフォルトではヘルプを表示
         CommandLine(this).usage(System.out)
     }
 }

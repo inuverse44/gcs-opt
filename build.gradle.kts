@@ -19,9 +19,12 @@ dependencies {
     implementation("io.quarkus:quarkus-arc")
     implementation("io.quarkus:quarkus-picocli")
     implementation("io.quarkus:quarkus-kotlin")
+    implementation("io.quarkus:quarkus-hibernate-orm-panache-kotlin")
+    implementation("io.quarkus:quarkus-jdbc-h2")
     implementation("io.quarkiverse.googlecloudservices:quarkus-google-cloud-storage")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     testImplementation("io.quarkus:quarkus-junit5")
+    testImplementation("io.quarkus:quarkus-junit5-mockito")
 }
 
 group = "com.example"

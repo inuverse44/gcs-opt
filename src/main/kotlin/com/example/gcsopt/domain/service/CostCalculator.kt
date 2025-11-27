@@ -2,9 +2,6 @@ package com.example.gcsopt.domain.service
 
 import jakarta.enterprise.context.ApplicationScoped
 
-/**
- * コスト計算ロジック
- */
 @ApplicationScoped
 class CostCalculator {
     
@@ -25,19 +22,12 @@ class CostCalculator {
         private const val BYTES_PER_GB = 1_073_741_824.0 // 1024^3
     }
     
-    /**
-     * 現在のコストを計算
-     */
     fun calculateCurrentCost(sizeBytes: Long, storageClass: String): Double {
         val sizeGb = sizeBytes / BYTES_PER_GB
         val rate = RATES[storageClass] ?: RATES["STANDARD"]!!
         return sizeGb * rate
     }
     
-    /**
-     * 最適化後のコストを計算
-     * 未使用データをCOLDLINEに移行した場合
-     */
     fun calculateOptimizedCost(
         totalSizeBytes: Long,
         unaccessedSizeBytes: Long,

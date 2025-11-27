@@ -3,18 +3,16 @@ package com.example.gcsopt.domain.service
 import com.example.gcsopt.domain.model.BucketAnalysis
 import com.example.gcsopt.domain.model.BucketInfo
 import com.example.gcsopt.infra.gcs.GcsRepository
+import com.example.gcsopt.infra.persistence.BucketAnalysisPersistenceService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
+import jakarta.inject.Named
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-/**
- * 分析サービス
- */
 @ApplicationScoped
 class AnalysisService {
     
@@ -23,16 +21,10 @@ class AnalysisService {
     
     @Inject
     lateinit var calculator: CostCalculator
+
+    @Inject
+    lateinit var persistence: BucketAnalysisPersistenceService
     
-    /**
-     * バケットを分析
-     */
-    /**
-     * バケットを分析
-     */
-    /**
-     * バケットを分析
-     */
     suspend fun analyzeBucket(
         bucket: BucketInfo,
         thresholdDays: Long,
@@ -97,9 +89,6 @@ class AnalysisService {
         )
     }
     
-    /**
-     * プロジェクト全体を分析
-     */
     fun analyzeProject(
         projectId: String,
         thresholdDays: Long,
@@ -119,6 +108,22 @@ class AnalysisService {
                 println("[${index + 1}/${buckets.size}] Starting analysis for ${bucket.name}")
                 analyzeBucket(bucket, thresholdDays, targetClass, compressionRatio)
             }
-        }.awaitAll()
+        }.awaitAll().also { analyses ->
+            persistence.saveResults(
+                projectId = projectId,
+                thresholdDays = thresholdDays,
+                targetClass = targetClass,
+                compressionRatio = compressionRatio,
+                analyses = analyses
+            )
+        }
     }
+
+    fun loadCachedProjectAnalysis(
+        projectId: String,
+        thresholdDays: Long,
+        bucketFilter: String? = null,
+        cacheTtlMinutes: Long? = null
+    ): List<BucketAnalysis> =
+        persistence.loadCachedResults(projectId, thresholdDays, bucketFilter, cacheTtlMinutes)
 }

@@ -56,6 +56,19 @@ class ScanCommand : Runnable {
         defaultValue = "text"
     )
     var outputFormat: String = "text"
+
+    @Option(
+        names = ["--use-cache"],
+        description = ["Use cached analysis results when available (default: false)"]
+    )
+    var useCache: Boolean = false
+
+    @Option(
+        names = ["--cache-ttl-minutes"],
+        description = ["Cache TTL minutes when --use-cache is enabled (default: 1440)"],
+        defaultValue = "1440"
+    )
+    var cacheTtlMinutes: Long = 1440
     
     @Inject
     lateinit var analysisService: AnalysisService
@@ -73,6 +86,32 @@ class ScanCommand : Runnable {
         println()
         
         val compressionRatio = if (estimateCompression) 0.5 else null
+
+        if (useCache) {
+            val cachedResults = analysisService.loadCachedProjectAnalysis(
+                projectId = projectId,
+                thresholdDays = thresholdDays,
+                bucketFilter = bucketName,
+                cacheTtlMinutes = cacheTtlMinutes
+            )
+
+            if (cachedResults.isNotEmpty()) {
+                println("Using cached analysis (<= ${cacheTtlMinutes}min). Use without --use-cache to force refresh.")
+                println()
+                when (outputFormat.lowercase()) {
+                    "json" -> {
+                        printJson(cachedResults)
+                    }
+
+                    else -> {
+                        printText(cachedResults)
+                    }
+                }
+                return
+            } else {
+                println("No cached analysis within ${cacheTtlMinutes}min. Running live scan...\n")
+            }
+        }
         
         val results = analysisService.analyzeProject(
             projectId = projectId,
