@@ -6,9 +6,6 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.time.Instant
 
-/**
- * Bucket Scan Status Entity
- */
 @Entity
 @Table(name = "bucket_scan_status")
 open class BucketScanStatusEntity : PanacheEntityBase {

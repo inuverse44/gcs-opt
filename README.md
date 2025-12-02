@@ -98,10 +98,28 @@ java -jar build/quarkus-app/quarkus-run.jar scan -p my-project-id -d 90 -t ARCHI
 ./gradlew quarkusDev -- -p <PROJECT_ID>
 ```
 
+### テスト
+
+単体テストを実行するには以下のコマンドを使用します。
+
+```bash
+./gradlew test
+```
+
+特定のテストクラスのみを実行する場合:
+
+```bash
+./gradlew test --tests "com.example.gcsopt.domain.service.CostCalculatorTest"
+```
+
+テスト結果は `build/test-results/test/` に出力されます。
+
 ### ネイティブビルド
 
 GraalVMがインストールされている場合、ネイティブバイナリをビルドできます。
 
 ```bash
-./gradlew build -Dquarkus.native.enabled=true
+./gradlew build -Dquarkus.package.type=native
 ```
+
+ネイティブビルドには時間がかかります（数分程度）。ビルドが成功すると、`build/gcs-opt-1.0.0-SNAPSHOT-runner` という実行可能ファイルが生成されます。

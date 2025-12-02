@@ -10,9 +10,6 @@ import jakarta.transaction.Transactional
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-/**
- * Hibernate ORM を使った分析結果のキャッシュ制御
- */
 @ApplicationScoped
 class BucketAnalysisPersistenceService {
 

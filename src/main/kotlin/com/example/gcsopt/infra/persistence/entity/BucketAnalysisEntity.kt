@@ -9,9 +9,6 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.time.Instant
 
-/**
- * GCS分析結果の永続化エンティティ
- */
 @Entity
 @Table(name = "bucket_analysis")
 class BucketAnalysisEntity : PanacheEntityBase {

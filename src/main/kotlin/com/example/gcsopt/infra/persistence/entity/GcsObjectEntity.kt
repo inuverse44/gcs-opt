@@ -6,9 +6,6 @@ import jakarta.persistence.Index
 import jakarta.persistence.Table
 import java.time.Instant
 
-/**
- * GCS Object Entity
- */
 @Entity
 @Table(name = "gcs_objects", indexes = [
     Index(name = "idx_bucket_name", columnList = "bucketName")

@@ -52,3 +52,11 @@ kotlin {
         javaParameters = true
     }
 }
+
+tasks.named("quarkusGenerateCode") {
+    doFirst {
+        if (!project.file("build/classes/java/main").exists()) {
+            project.file("build/classes/java/main").mkdirs()
+        }
+    }
+}
